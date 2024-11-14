@@ -4,8 +4,15 @@
   "description": "Backend server for Boston Celtics Player Stats",
   "main": "server.js",
   "dependencies": {
-    "express": "^4.17.1",
     "cors": "^2.8.5",
-    "csv-parser": "^3.0.0"
-  }
+    "csv-parser": "^3.0.0",
+    "express": "^4.21.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
