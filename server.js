@@ -1,60 +1,63 @@
+require('dotenv').config();
+
 const express = require('express');
-     const cors = require('cors');
-     const fs = require('fs');
-     const csv = require('csv-parser');
-     const path = require('path');
-     const app = express();
-     const PORT = 5000;
+const mysql = require('mysql');
+const bodyParser = require('body-parser');
 
-     app.use(cors());
-     app.use(express.json());
+const app = express();
+const port = 3000;
 
-     // Load Boston Celtics player data from CSV files
-     let players = [];
+// Middleware
+app.use(bodyParser.json());
 
-     // Dynamically load all CSV files in the backend folder
-     const backendFolderPath = path.join(__dirname);
+// Database connection
+const db = mysql.createConnection({
+  host: process.env.DB_SERVER,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+});
 
-     fs.readdir(backendFolderPath, (err, files) => {
-       if (err) {
-         console.error('Error reading backend folder:', err);
-         return;
-       }
-       files.filter(file => file.endsWith('.csv')).forEach((file) => {
-         fs.createReadStream(path.join(backendFolderPath, file))
-           .pipe(csv())
-           .on('data', (row) => {
-             players.push({
-               id: row.PlayerID || row.Player,  // Replace with actual column names from each CSV file
-               name: row.PlayerName || row.Player, 
-               pointsPerGame: parseFloat(row.PTS || row['Points Per Game'] || row['PTS/G']),
-               assists: parseFloat(row.AST || row['Assists']),
-               rebounds: parseFloat(row.REB || row['Rebounds']),
-               team: 'Boston Celtics'
-             });
-           })
-           .on('end', () => {
-             console.log(`${file} data loaded successfully.`);
-           });
-       });
-     });
+db.connect((err) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+    return;
+  }
+  console.log('Connected to the database');
+});
 
-     // API routes to serve player data
-     app.get('/api/players', (req, res) => {
-       res.json(players);
-     });
+// Routes
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
 
-     app.get('/api/players/:id', (req, res) => {
-       const player = players.find(p => p.id === req.params.id);
-       if (player) {
-         res.json(player);
-       } else {
-         res.status(404).send('Player not found');
-       }
-     });
+// Add a new route to handle adding data to the database
+app.post('/add', (req, res) => {
+  const { name, age } = req.body;
+  const query = 'INSERT INTO users (name, age) VALUES (?, ?)';
+  db.query(query, [name, age], (err, result) => {
+    if (err) {
+      console.error('Error adding data:', err);
+      res.status(500).send('Error adding data');
+    } else {
+      res.send('Data added successfully');
+    }
+  });
+});
 
-     app.listen(PORT, () => {
-       console.log(`Server running on http://localhost:${PORT}`);
-     });
-     
+// Add a new route to handle fetching data from the database
+app.get('/users', (req, res) => {
+  const query = 'SELECT * FROM users';
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching data:', err);
+      res.status(500).send('Error fetching data');
+    } else {
+      res.json(results);
+    }
+  });
+});
 
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
