@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from flask_cors import CORS  # Import CORS for Cross-Origin Resource Sharing
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS
 
 # Load and preprocess Boston Celtics data
 def load_data():
@@ -36,11 +38,21 @@ model.fit(X_train, y_train)
 def predict():
     try:
         data = request.json
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Convert the input data to a DataFrame
         sample = pd.DataFrame([data])
+        
+        # Ensure all necessary features are provided
+        required_features = ['PTS/G', 'MP', 'FG%', '3P%', 'AST']
+        if not all(feature in sample.columns for feature in required_features):
+            return jsonify({'error': f'Missing one or more required features: {required_features}'}), 400
+        
         prediction = model.predict(sample)
         return jsonify({'prediction': bool(prediction[0])})
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
-    app.run(port=5001)
+    app.run(host='0.0.0.0', port=8080)  # Run the server on port 8080 to comply with Google Cloud Run requirements
